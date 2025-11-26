@@ -1,0 +1,63 @@
+/-
+Copyright (c) 2025 Antoine Chambert-Loir, María Inés de Frutos-Fernández. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Antoine Chambert-Loir, María Inés de Frutos-Fernández
+-/
+
+import Mathlib.Algebra.Polynomial.AlgebraMap
+
+/-! # Base change to polynomial maps
+
+## Main definitions
+- `Polynomial.baseChange` : given `φ : S →ₐ[R] S'`, `baseChange φ` aplies `φ` on the
+  coefficients of a polynomial in `S[X]`.
+-/
+namespace Polynomial
+
+variable {R : Type*} [CommSemiring R] {S : Type*} [CommSemiring S] [Algebra R S]
+  {S' : Type*} [CommSemiring S'] [Algebra R S']
+
+lemma C_eq_algebraMap' (r : R) : C (algebraMap R S r) = algebraMap R S[X] r := rfl
+
+/-- `baseChange φ` aplies `φ` on the coefficients of a polynomial in `S[X]` -/
+noncomputable def baseChange (φ : S →ₐ[R] S') : S[X] →ₐ[R] S'[X] where
+  toRingHom := eval₂RingHom (C.comp φ) X
+  commutes' := fun r ↦ by simp
+
+lemma coeff_baseChange_apply (φ : S →ₐ[R] S') (f : S[X]) (p : ℕ) :
+    coeff (baseChange φ f) p = φ (coeff f p) := by
+  rw [baseChange, AlgHom.coe_mk, coe_eval₂RingHom]
+  induction f using Polynomial.induction_on with
+  | C r =>
+    simp only [eval₂_C, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply, coeff_C,
+      apply_ite φ, map_zero]
+  | add f g hf hg => simp only [eval₂_add, coeff_add, hf, hg, map_add]
+  | monomial n r _ =>
+    simp only [eval₂_mul, eval₂_C, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
+      eval₂_X_pow, coeff_C_mul, _root_.map_mul, coeff_X_pow, apply_ite φ, _root_.map_one, map_zero]
+
+lemma lcoeff_comp_baseChange_eq (φ : S →ₐ[R] S') (p : ℕ) :
+    LinearMap.comp (AlgHom.toLinearMap φ) ((lcoeff S p).restrictScalars R) =
+      LinearMap.comp ((lcoeff S' p).restrictScalars R) (baseChange φ).toLinearMap := by
+  ext f
+  simp only [LinearMap.coe_comp, LinearMap.coe_restrictScalars, Function.comp_apply, lcoeff_apply,
+    AlgHom.toLinearMap_apply, coeff_baseChange_apply]
+
+lemma baseChange_monomial (φ : S →ₐ[R] S') (n : ℕ) (a : S) :
+    (baseChange φ) ((Polynomial.monomial n) a) = (Polynomial.monomial n) (φ a) := by
+  simp only [baseChange, AlgHom.coe_mk, coe_eval₂RingHom, eval₂_monomial, RingHom.coe_comp,
+    RingHom.coe_coe, Function.comp_apply, C_mul_X_pow_eq_monomial]
+
+open LinearMap TensorProduct in
+lemma X_pow_mul_rTensor_monomial {S : Type*} [CommSemiring S] [Algebra R S] {N : Type*}
+    [AddCommMonoid N] [Module R N] (k : ℕ) (sn : S ⊗[R] N) :
+      X (R := S) ^ k • (LinearMap.rTensor N ((monomial 0).restrictScalars R)) sn =
+        (LinearMap.rTensor N ((monomial k).restrictScalars R)) sn := by
+    induction sn using TensorProduct.induction_on with
+    | zero => simp
+    | add x y hx hy => simp [hx, hy]
+    | tmul s n =>
+      simp only [rTensor_tmul, coe_restrictScalars, monomial_zero_left]
+      rw [smul_tmul', smul_eq_mul, mul_comm, C_mul_X_pow_eq_monomial]
+
+end Polynomial

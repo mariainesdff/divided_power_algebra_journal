@@ -1,0 +1,174 @@
+/-
+Copyright (c) 2025 Antoine Chambert-Loir, María Inés de Frutos-Fernández. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Antoine Chambert-Loir, María Inés de Frutos-Fernández
+-/
+
+import DividedPowerAlgebra.DPAlgebra.BaseChange
+import DividedPowerAlgebra.PolynomialLaw.Homogeneous
+import Mathlib.LinearAlgebra.DirectSum.Basis
+
+/-! # Polynomial laws and the divided power algebra (work in progress).
+
+In this file we construct the universal homogeneous `PolynomialLaw` from a module to the degree `n`
+part of its `DividedPowerAlgebra`, following the proof of Theorem IV.1 in [Roby-1963].
+
+The main application will be the following : If `M` is free as a `R`-module with basis `(e i)`,
+then the degree `n` component of `DividedPowerAlgebra R M` is free, with basis the family of all
+`h.prod fun i n ↦ dp R n (e i)` where `h : ι →₀ ℕ` satisfies `h.total = n`.
+
+## Main Definitions
+
+* `DividedPowerAlgebra.gamma`: the universal polynomial map (homogeneous of degree n) on a module.
+
+* `DividedPowerAlgebra.gamma'`: the universal polynomial map (homogeneous of degree n) on a module,
+  valued in the graded part of degree n.
+
+## Main results
+
+* `DividedPowerAlgebra.grade_free`: if `M` is a free `R`-module, then the degree n submodule of
+  `DividedPowerAlgebra R M` is free.
+
+## TODO
+* Prove that `DividedPowerAlgebra.dpScalarExtensionEquiv` is compatible with the graded
+  structure and induces equivs componentwise.
+
+## References
+
+* [N. Roby (1963), *Lois polynomes et lois formelles en théorie des
+modules*][Roby-1963]
+
+-/
+
+
+universe u
+
+variable (R : Type u) [CommRing R] (M : Type*) [AddCommMonoid M] [Module R M]
+
+namespace DividedPowerAlgebra
+
+open TensorProduct AlgEquiv LinearMap MvPolynomial DividedPowerAlgebra
+
+
+/-- The universal polynomial map (homogeneous of degree n) on a module. -/
+noncomputable
+def gamma (n : ℕ) : PolynomialLaw R M (DividedPowerAlgebra R M) where
+  toFun' S _ _ m :=
+    let _ : CommRing S := RingHom.commSemiringToCommRing (algebraMap R S)
+    (DividedPowerAlgebra.dpScalarExtensionEquiv R S M).symm
+      (DividedPowerAlgebra.dp S n m)
+  isCompat' {S _ _ S' _ _} φ := by
+    ext x
+    let _ : CommRing S := RingHom.commSemiringToCommRing (algebraMap R S)
+    let _ : CommRing S' := RingHom.commSemiringToCommRing (algebraMap R S')
+    apply rTensor_comp_dpScalarExtensionEquiv_symm_eq
+
+theorem gamma_toFun (n : ℕ) {S : Type*} [CommRing S] [Algebra R S] (m : S ⊗[R] M) :
+    (gamma R M n).toFun S m = (dpScalarExtensionEquiv R S M).symm (dp S n m) := by
+  obtain ⟨k, ψ, p, rfl⟩ := PolynomialLaw.exists_lift m
+  rw [← (gamma R M n).isCompat_apply, PolynomialLaw.toFun_eq_toFun']
+  simp only [gamma]
+  have := rTensor_comp_dpScalarExtensionEquiv_symm_eq R M ψ n p
+  convert this <;> ext <;> rfl
+
+theorem isHomogeneous_gamma (n : ℕ) :
+    PolynomialLaw.IsHomogeneous n (DividedPowerAlgebra.gamma R M n) := by
+  intro S _ _ r sm
+  let _ : CommRing S := RingHom.commSemiringToCommRing (algebraMap R S)
+  simp only [gamma]
+  apply (dpScalarExtensionEquiv R S M).injective
+  simp only [apply_symm_apply, LinearMapClass.map_smul]
+  rw [dp_smul]
+
+theorem gamma_mem_grade (n : ℕ) (S : Type*) [CommRing S] [Algebra R S] (m : S ⊗[R] M) :
+    (gamma R M n).toFun S m ∈ LinearMap.range (LinearMap.lTensor S (grade R M n).subtype) := by
+  induction m using TensorProduct.induction_on generalizing n with
+  | zero =>
+    simp only [gamma_toFun, dp_null]
+    split_ifs with h
+    · rw [map_one, h]
+      simp only [LinearMap.mem_range]
+      use (1 : S) ⊗ₜ[R] ⟨(1 : DividedPowerAlgebra R M), one_mem R M⟩
+      simp only [LinearMap.lTensor_tmul, Submodule.coe_subtype]
+      rw [Algebra.TensorProduct.one_def]
+    · simp only [map_zero, zero_mem]
+  | tmul s m =>
+    simp only [gamma_toFun, dpScalarExtensionEquiv]
+    simp only [ofAlgHom_symm_apply]
+    rw [dpScalarExtensionInv_apply_dp]
+    simp only [LinearMap.mem_range]
+    use (s ^ n) ⊗ₜ[R] ⟨dp R n m, dp_mem_grade R M n m⟩
+    simp only [LinearMap.lTensor_tmul, Submodule.coe_subtype]
+  | add x y hx hy =>
+    simp only [gamma_toFun, dpScalarExtensionEquiv, ofAlgHom_symm_apply]
+    simp only [dp_add, _root_.map_sum]
+    apply Submodule.sum_mem
+    rintro ⟨k, l⟩ hkl
+    simp only [_root_.map_mul]
+    specialize hx k
+    specialize hy l
+    simp only [gamma_toFun, dpScalarExtensionEquiv, ofAlgHom_symm_apply,
+      LinearMap.mem_range] at hx hy
+    obtain ⟨x', hx'⟩ := hx
+    obtain ⟨y', hy'⟩ := hy
+    simp only [LinearMap.mem_range]
+    -- we need the graded structure on the base change of a graded algebra
+    rw [← hx', ← hy']
+    have := (LinearMap.lTensor S (grade R M k).subtype) x' *
+      (LinearMap.lTensor S (grade R M l).subtype) y'
+    sorry
+
+/- To do this, it seems that we have to understand polynomial maps valued into a submodule (in this
+case, it is a direct factor, so it will exactly correspond to polynomial laws all of which
+evaluations are valued into the submodule).
+A “pure” submodule `N` (for which all base changes `S ⊗[R] N → S⊗[R] M` are injective) might work
+as well. -/
+
+open Classical in
+/-- The universal polynomial map (homogeneous of degree n) on a module,
+  valued in the graded part of degree n -/
+noncomputable
+def gamma' (n : ℕ) : PolynomialLaw R M (grade R M n) :=
+  PolynomialLaw.comp (proj' R M n).toPolynomialLaw (gamma R M n)
+
+theorem gamma'_mem_grade (n : ℕ) : gamma' R M n ∈ PolynomialLaw.grade n := by
+  classical
+  simp only [gamma']
+  let u := (proj' R M n)
+  have Hu := PolynomialLaw.toPolynomialLaw_mem_grade_one
+    (M := DividedPowerAlgebra R M) (R := R) (N := grade R M n) u
+  have Hγ := isHomogeneous_gamma R M n
+  rw [PolynomialLaw.mem_grade]
+  simpa using PolynomialLaw.IsHomogeneous.comp
+    (M := M) (N := DividedPowerAlgebra R M) (R := R) (P := grade R M n)
+    Hγ Hu
+
+open Module
+
+/-- For `b : Basis ι R M`, a basis of `DividedPowerAlgebra.grade R M n`.
+Roby 1963, theorem IV.2. -/
+noncomputable
+def grade_basis (n : ℕ) {ι : Type*} (b : Basis ι R M) :
+    Basis { h : ι →₀ ℕ // (h.sum fun i n ↦ n) = n } R (grade R M n) := by
+  let v (h : ι →₀ ℕ) : DividedPowerAlgebra R M := h.prod (fun i n ↦ dp R n (b i))
+  have hv : ∀ h, v h ∈ grade R M (h.sum fun i n ↦ n) := sorry
+  set v' : { h : ι →₀ ℕ // (h.sum fun i n ↦ n) = n} → grade R M n :=
+    fun ⟨h, hh⟩ ↦ ⟨v h, by rw [← hh]; apply hv⟩ with hv'
+  apply Basis.mk (v := v')
+  · /- Linear independence is the difficult part, it relies on the PolynomialLaw interpretation -/
+    sorry
+  · /- It should be easy to prove that the `dp R n (b i)` generate -/
+    sorry
+
+theorem grade_free [Module.Free R M] (n : ℕ) : Module.Free R (grade R M n) :=
+  Module.Free.of_basis (grade_basis R M n (Module.Free.chooseBasis R M))
+
+theorem toModule_free [Module.Free R M] :
+    Module.Free R (DividedPowerAlgebra R M) := by
+  classical
+  haveI : ∀ i, Module.Free R (grade R M i) := fun i ↦ grade_free R M i
+  haveI : Module.Free R (DirectSum ℕ fun i ↦ ↥(grade R M i)) := by
+    apply Module.Free.directSum
+  exact Module.Free.of_equiv (DirectSum.decomposeLinearEquiv (grade R M)).symm
+
+end DividedPowerAlgebra

@@ -1,0 +1,53 @@
+-- Divided power algebra
+import DividedPowerAlgebra.DPAlgebra.BaseChange
+import DividedPowerAlgebra.DPAlgebra.Dpow -- Uses sorry
+import DividedPowerAlgebra.DPAlgebra.Exponential
+import DividedPowerAlgebra.DPAlgebra.Graded.Basic
+import DividedPowerAlgebra.DPAlgebra.Graded.GradeOne
+import DividedPowerAlgebra.DPAlgebra.Graded.GradeZero
+import DividedPowerAlgebra.DPAlgebra.Init
+import DividedPowerAlgebra.DPAlgebra.PolynomialLaw -- Uses sorry
+
+-- Required background results
+import DividedPowerAlgebra.ForMathlib.Algebra.Algebra.Bilinear
+import DividedPowerAlgebra.ForMathlib.Algebra.MvPolynomial.Lemmas
+import DividedPowerAlgebra.ForMathlib.Algebra.Polynomial.AlgebraMap
+import DividedPowerAlgebra.ForMathlib.Algebra.TrivSqZeroExt
+import DividedPowerAlgebra.ForMathlib.Algebra.BigOperators.Finsupp.Fin
+import DividedPowerAlgebra.ForMathlib.Data.FinsetLemmas
+import DividedPowerAlgebra.ForMathlib.Data.Nat.Choose.Multinomial
+import DividedPowerAlgebra.ForMathlib.GradedRingQuot
+import DividedPowerAlgebra.ForMathlib.LinearAlgebra.Isomorphisms
+import DividedPowerAlgebra.ForMathlib.LinearAlgebra.TensorProduct.Basic
+import DividedPowerAlgebra.ForMathlib.LinearAlgebra.TensorProduct.Pi
+import DividedPowerAlgebra.ForMathlib.LinearAlgebra.TensorProduct.Prod
+import DividedPowerAlgebra.ForMathlib.RingTheory.AugmentationIdeal
+import DividedPowerAlgebra.ForMathlib.RingTheory.Congruence.Hom
+import DividedPowerAlgebra.ForMathlib.RingTheory.DividedPowers.Basic
+import DividedPowerAlgebra.ForMathlib.RingTheory.GradedAlgebra.Basic
+import DividedPowerAlgebra.ForMathlib.RingTheory.Localization.FractionRing
+import DividedPowerAlgebra.ForMathlib.RingTheory.SubmoduleMem
+import DividedPowerAlgebra.ForMathlib.RingTheory.TensorProduct.DirectLimit.FG
+import DividedPowerAlgebra.ForMathlib.RingTheory.TensorProduct.Basic
+import DividedPowerAlgebra.ForMathlib.RingTheory.TensorProduct.LinearEquiv
+import DividedPowerAlgebra.ForMathlib.RingTheory.TensorProduct.MvPolynomial
+import DividedPowerAlgebra.ForMathlib.RingTheory.TensorProduct.Polynomial
+
+-- Results borrowed from our previous project https://github.com/mariainesdff/divided_powers_journal
+import DividedPowerAlgebra.FromMathlib.DividedPowers.ExponentialModule.Basic
+import DividedPowerAlgebra.FromMathlib.RingTheory.PowerSeries.Substitution
+
+-- Polynomial Laws
+import DividedPowerAlgebra.PolynomialLaw.BaseChange
+import DividedPowerAlgebra.PolynomialLaw.Basic
+import DividedPowerAlgebra.PolynomialLaw.BiCoeff
+import DividedPowerAlgebra.PolynomialLaw.BiHomogeneous
+import DividedPowerAlgebra.PolynomialLaw.Coeff
+import DividedPowerAlgebra.PolynomialLaw.Differential -- Uses sorry
+import DividedPowerAlgebra.PolynomialLaw.Differential2 -- Uses sorry
+import DividedPowerAlgebra.PolynomialLaw.Homogeneous
+import DividedPowerAlgebra.PolynomialLaw.LocFinsupp
+import DividedPowerAlgebra.PolynomialLaw.MultiCoeff
+import DividedPowerAlgebra.PolynomialLaw.MultiHomogeneous
+import DividedPowerAlgebra.PolynomialLaw.Polarized
+import DividedPowerAlgebra.PolynomialLaw.Prod
